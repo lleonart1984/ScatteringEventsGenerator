@@ -8,15 +8,17 @@ namespace Generator
     public class Experiment
     {
         public static void Sample(IGeometricVolume volume, MediaMaterial media, float3 wIn, float3 Lpos, 
-            out float3 x, out float3 w, out float Importance, out float3 X, out float A)
+            out float3 x, out float3 w, out int n, out float3 X, out float A)
         {
-            Importance = 1;
+            n = 0;
+            float Importance = 1;
             x = float3(0, 0, 0);
             w = wIn;
             A = 0;
             X = x;
             while (true)
             {
+                n++;
                 Importance *= media.ScatteringAlbedo;
                 float pX = media.Phase.Eval(dot(w, normalize(Lpos - x))) * Importance;
                 A = A + pX;

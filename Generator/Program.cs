@@ -19,7 +19,11 @@ namespace Generator
                 if (Disc < 0)
                     return float.NaN;
 
-                return (-b - sqrt(Disc)) * 0.5f;
+                float t0 = -b - sqrt(Disc);
+                float t1 = -b + sqrt(Disc);
+                if (t0 > 0)
+                    return t0 * 0.5f;
+                return t1 * 0.5f;
             }
 
             public bool IsInside(float3 x)
@@ -108,10 +112,10 @@ namespace Generator
         {
             float sd = random();
             
-            g = random() * 2 - 1;
+            g = Math.Max(-0.999f, Math.Min(0.999f, random() * 2 - 1));
             density = sd < 0.1 ? (float)Math.Max(0.01, sd * 10) : sd < 0.5 ? (float)(1 + 4 * (sd - 0.1) / (0.4)) : (float)Math.Exp((sd - 0.5) * 4) * 5;
             scatteringAlbedo = 1 - pow(random(), 4);
-            Lin = randomSphere()* (1 + log(1 - random()));
+            Lin = randomSphere()* (1 + log(Math.Max(0.001f, 1 - random())));
         }
 
         static void Main(string[] args)
@@ -133,9 +137,10 @@ namespace Generator
                 float3 Lin;
                 GenerateParameters(out density, out scatteringAlbedo, out g, out Lin);
                 float3 x, w, X;
-                float Importance, Accum;
+                float Accum;
+                int n;
                 MediaMaterial media = new MediaMaterial(PhaseFunctions.Create(g), density, scatteringAlbedo);
-                Experiment.Sample(UnitarySphereGeomery.Instance, media, float3(0,0,1), Lin, out x, out w, out Importance, out X, out Accum);
+                Experiment.Sample(UnitarySphereGeomery.Instance, media, float3(0,0,1), Lin, out x, out w, out n, out X, out Accum);
 
                 // Rotate x to the yz-plane and other vectors with the same matrix
                 float3 zAxis = float3(0, 0, 1);
@@ -149,21 +154,20 @@ namespace Generator
                 float3 normLin = mul(Lin, normR);
                 float3 B = float3(1, 0, 0);
                 float3 T = cross(normx, B);
-                float theta = acos(x.z);
+                float theta = acos(Math.Max(-1, Math.Min(1, x.z)));
                 float beta = dot(normw, T);
                 float alpha = dot(normw, B);
                 // normalizing
-                alpha = abs(alpha) / sqrt(1 - beta * beta);
+                alpha = abs(alpha) / sqrt(Math.Max(0.001f, 1 - beta * beta));
                 beta = beta * 0.5f + 0.5f;
                 theta = theta / Pi;
-                Importance /= media.ScatteringAlbedo;
                 float Xz = normX.z * 0.5f + 0.5f;
-                float Xy = normX.y / sqrt(1 - normX.z * normX.z) * 0.5f + 0.5f;
-                float Xx = normX.x / sqrt(1 - normX.y * normX.y - normX.z * normX.z) * 0.5f + 0.5f;
+                float Xy = normX.y / sqrt(Math.Max(0.001f, 1 - normX.z * normX.z)) * 0.5f + 0.5f;
+                float Xx = normX.x / sqrt(Math.Max(0.001f, 1 - normX.y * normX.y - normX.z * normX.z)) * 0.5f + 0.5f;
                 Accum = 2 / (1 + exp(-Accum)) - 1;
 
                 writer.WriteLine("{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12},{13}",
-                    density, scatteringAlbedo, g, normLin.x, normLin.y, normLin.z, theta, beta, alpha, Importance, Xx, Xy, Xz, Accum);
+                    density, scatteringAlbedo, g, normLin.x, normLin.y, normLin.z, theta, beta, alpha, 1.0f / n, Xx, Xy, Xz, Accum);
             }
             writer.Close();
 

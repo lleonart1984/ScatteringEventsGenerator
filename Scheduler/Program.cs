@@ -34,8 +34,7 @@ namespace Scheduler
                     Console.WriteLine("Starting trainer...");
 
                     // Start training process
-                    //Process.Start("python.exe", "HilbertGenFromFile.py");
-                    Process.Start("python.exe", "vae4Scatter.py");
+                    Process.Start("python.exe", "vae4Scattering.py");
                 }
                 else
                 {
